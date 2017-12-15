@@ -24,11 +24,15 @@ module.exports = {
         use: {
           loader: 'babel-loader',
           options: {
-            presets: [['es2015'], 'react', 'stage-2'],
-            plugins: ['transform-es3-member-expression-literals', 'transform-es3-property-literals']
+            presets: [['@babel/preset-es2015', { loose: true }], '@babel/preset-react', '@babel/preset-stage-2']
           }
         },
         exclude: /node_modules/
+      },
+      {
+        test: /\.js$/,
+        enforce: 'post',
+        loader: 'es3ify-loader'
       }
     ]
   },

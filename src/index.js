@@ -265,15 +265,15 @@ class InputElement extends React.Component {
   }
 
   onChange = (event) => {
-    var { paste } = this;
+    var { beforePasteState } = this;
     var { mask, maskChar, lastEditablePos, prefix } = this.maskOptions;
 
     var value = this.getInputValue();
     var oldValue = this.value;
 
-    if (paste) {
-      this.paste = null;
-      this.pasteText(paste.value, value, paste.selection, event);
+    if (beforePasteState) {
+      this.beforePasteState = null;
+      this.pasteText(beforePasteState.value, value, beforePasteState.selection, event);
       return;
     }
 
@@ -429,13 +429,51 @@ class InputElement extends React.Component {
     }
   }
 
+  onMouseDown = (event) => {
+    // tiny unintentional mouse movements can break cursor
+    // position on focus, so we have to restore it in that case
+    //
+    // https://github.com/sanniassin/react-input-mask/issues/108
+    if (!this.focused && document.addEventListener) {
+      this.mouseDownX = event.clientX;
+      this.mouseDownY = event.clientY;
+      this.mouseDownTime = (new Date()).getTime();
+
+      var mouseUpHandler = (mouseUpEvent) => {
+        document.removeEventListener('mouseup', mouseUpHandler);
+
+        if (!this.focused) {
+          return;
+        }
+
+        var deltaX = Math.abs(mouseUpEvent.clientX - this.mouseDownX);
+        var deltaY = Math.abs(mouseUpEvent.clientY - this.mouseDownY);
+        var axisDelta = Math.max(deltaX, deltaY);
+        var timeDelta = (new Date()).getTime() - this.mouseDownTime;
+
+        if ((axisDelta <= 10 && timeDelta <= 200) || (axisDelta <= 5 && timeDelta <= 300)) {
+          this.setCursorToEnd();
+        }
+      };
+
+      document.addEventListener('mouseup', mouseUpHandler);
+    }
+
+    if (typeof this.props.onMouseDown === 'function') {
+      this.props.onMouseDown(event);
+    }
+  }
+
   onPaste = (event) => {
     if (typeof this.props.onPaste === 'function') {
       this.props.onPaste(event);
     }
 
-    if (this.isAndroidBrowser && !event.defaultPrevented) {
-      this.paste = {
+    // we need raw pasted text, but event.clipboardData
+    // may not work in Android browser, so we clean input
+    // to get raw text in onChange handler
+    if (!event.defaultPrevented) {
+      this.beforePasteState = {
         value: this.getInputValue(),
         selection: this.getSelection()
       };
@@ -453,11 +491,9 @@ class InputElement extends React.Component {
     cursorPos += textLen;
     cursorPos = this.getRightEditablePos(cursorPos) || cursorPos;
 
-    if (value !== this.getInputValue()) {
-      this.setInputValue(value);
-      if (event && typeof this.props.onChange === 'function') {
-        this.props.onChange(event);
-      }
+    this.setInputValue(value);
+    if (event && typeof this.props.onChange === 'function') {
+      this.props.onChange(event);
     }
 
     this.setCursorPos(cursorPos);
@@ -468,7 +504,7 @@ class InputElement extends React.Component {
 
     if (this.maskOptions.mask) {
       if (!props.disabled && !props.readOnly) {
-        var handlersKeys = ['onChange', 'onKeyDown', 'onPaste'];
+        var handlersKeys = ['onChange', 'onKeyDown', 'onPaste', 'onMouseDown'];
         handlersKeys.forEach((key) => {
           props[key] = this[key];
         });
