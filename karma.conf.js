@@ -93,6 +93,13 @@ module.exports = function (config) {
         device: 'Samsung Galaxy S5',
         os: 'android',
         os_version: '4.4'
+      },
+
+      ChromeHeadlessNoSandbox: {
+        base: 'ChromeHeadless',
+        flags: [
+          '--no-sandbox'
+        ]
       }
     },
 
@@ -111,7 +118,7 @@ module.exports = function (config) {
       'bs_ios8',
       //'bs_ios6',
       'bs_android44'
-    ] : ['ChromeHeadless'],
+    ] : ['ChromeHeadlessNoSandbox'],
 
     // base path that will be used to resolve all patterns (eg. files, exclude)
     basePath: './',

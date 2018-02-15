@@ -72,7 +72,7 @@ class InputElement extends React.Component {
       : this.value;
 
     if (!oldMaskOptions.mask && !this.hasValue) {
-      newValue = this.getInputDOMNode().value;
+      newValue = this.getInputValue();
     }
 
     if (isMaskChanged || (this.maskOptions.mask && (newValue || showEmpty))) {
@@ -267,15 +267,26 @@ class InputElement extends React.Component {
   onChange = (event) => {
     var { beforePasteState } = this;
     var { mask, maskChar, lastEditablePos, prefix } = this.maskOptions;
-
     var value = this.getInputValue();
-    var oldValue = this.value;
 
     if (beforePasteState) {
       this.beforePasteState = null;
       this.pasteText(beforePasteState.value, value, beforePasteState.selection, event);
       return;
     }
+
+    var oldValue = this.value;
+    var input = this.getInputDOMNode();
+
+    // autofill replaces whole value, ignore old one
+    // https://github.com/sanniassin/react-input-mask/issues/113
+    //
+    // input.matches throws exception if selector isn't supported
+    try {
+      if (typeof input.matches === 'function' && input.matches(':-webkit-autofill')) {
+        oldValue = '';
+      }
+    } catch (e) {}
 
     var selection = this.getSelection();
     var cursorPos = selection.end;
@@ -304,6 +315,9 @@ class InputElement extends React.Component {
           : this.getLeftEditablePos(cursorPos - 1);
 
         if (editablePos !== null) {
+          if (!maskChar) {
+            value = value.substr(0, getFilledLength(this.maskOptions, value));
+          }
           value = clearRange(this.maskOptions, value, editablePos, 1);
           cursorPos = editablePos;
         }
@@ -499,8 +513,16 @@ class InputElement extends React.Component {
     this.setCursorPos(cursorPos);
   }
 
+  handleRef = (ref) => {
+    this.input = ref;
+
+    if (typeof this.props.inputRef === 'function') {
+      this.props.inputRef(ref);
+    }
+  }
+
   render() {
-    var { mask, alwaysShowMask, maskChar, formatChars, ...props } = this.props;
+    var { mask, alwaysShowMask, maskChar, formatChars, inputRef, ...props } = this.props;
 
     if (this.maskOptions.mask) {
       if (!props.disabled && !props.readOnly) {
@@ -515,7 +537,7 @@ class InputElement extends React.Component {
       }
     }
 
-    return <input ref={ref => this.input = ref} {...props} onFocus={this.onFocus} onBlur={this.onBlur} />;
+    return <input ref={this.handleRef} {...props} onFocus={this.onFocus} onBlur={this.onBlur} />;
   }
 }
 

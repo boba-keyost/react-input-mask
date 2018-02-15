@@ -78,6 +78,14 @@ function _objectWithoutProperties(source, excluded) {
   return target;
 }
 
+function _assertThisInitialized(self) {
+  if (self === void 0) {
+    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+  }
+
+  return self;
+}
+
 var defaultCharsRules = {
   '9': '[0-9]',
   'a': '[A-Za-z]',
@@ -85,7 +93,7 @@ var defaultCharsRules = {
 };
 var defaultMaskChar = '_';
 
-var parseMask = function (mask, maskChar, charsRules) {
+function parseMask (mask, maskChar, charsRules) {
   if (maskChar === undefined) {
     maskChar = defaultMaskChar;
   }
@@ -136,7 +144,7 @@ var parseMask = function (mask, maskChar, charsRules) {
     lastEditablePos: lastEditablePos,
     permanents: permanents
   };
-};
+}
 
 function isAndroidBrowser() {
   var windows = new RegExp('windows', 'i');
@@ -219,10 +227,13 @@ function formatValue(maskOptions, value) {
 
   if (!maskChar) {
     value = insertString(maskOptions, '', value, 0);
-    value = value.slice(0, getFilledLength(maskOptions, value));
 
     if (value.length < prefix.length) {
       value = prefix;
+    }
+
+    while (value.length < mask.length && isPermanentChar(maskOptions, value.length)) {
+      value += mask[value.length];
     }
 
     return value;
@@ -251,6 +262,13 @@ function clearRange(maskOptions, value, start, len) {
   var arrayValue = value.split('');
 
   if (!maskChar) {
+    // remove any permanent chars after clear range, they will be added back by foramtValue
+    for (var i = end; i < arrayValue.length; i++) {
+      if (isPermanentChar(maskOptions, i)) {
+        arrayValue[i] = '';
+      }
+    }
+
     start = Math.max(prefix.length, start);
     arrayValue.splice(start, end - start);
     value = arrayValue.join('');
@@ -363,13 +381,13 @@ function getInsertStringLength(maskOptions, value, insertStr, insertPos) {
   return insertPos - initialInsertPos;
 }
 
-var defer = function (fn) {
+function defer (fn) {
   var defer = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || function () {
     return setTimeout(fn, 0);
   };
 
   return defer(fn);
-};
+}
 
 // https://github.com/sanniassin/react-input-mask
 var InputElement =
@@ -382,7 +400,7 @@ function (_React$Component) {
 
     _this = _React$Component.call(this, props) || this;
 
-    _initialiseProps.call(_this);
+    _initialiseProps.call(_assertThisInitialized(_this));
 
     var mask = props.mask,
         maskChar = props.maskChar,
@@ -439,7 +457,7 @@ function (_React$Component) {
     var newValue = this.hasValue ? this.getStringValue(nextProps.value) : this.value;
 
     if (!oldMaskOptions.mask && !this.hasValue) {
-      newValue = this.getInputDOMNode().value;
+      newValue = this.getInputValue();
     }
 
     if (isMaskChanged || this.maskOptions.mask && (newValue || showEmpty)) {
@@ -482,7 +500,8 @@ function (_React$Component) {
         alwaysShowMask = _props.alwaysShowMask,
         maskChar = _props.maskChar,
         formatChars = _props.formatChars,
-        props = _objectWithoutProperties(_props, ["mask", "alwaysShowMask", "maskChar", "formatChars"]);
+        inputRef = _props.inputRef,
+        props = _objectWithoutProperties(_props, ["mask", "alwaysShowMask", "maskChar", "formatChars", "inputRef"]);
 
     if (this.maskOptions.mask) {
       if (!props.disabled && !props.readOnly) {
@@ -498,9 +517,7 @@ function (_React$Component) {
     }
 
     return React.createElement("input", _extends({
-      ref: function ref(_ref) {
-        return _this2.input = _ref;
-      }
+      ref: this.handleRef
     }, props, {
       onFocus: this.onFocus,
       onBlur: this.onBlur
@@ -771,8 +788,6 @@ var _initialiseProps = function _initialiseProps() {
 
       var value = _this3.getInputValue();
 
-      var oldValue = _this3.value;
-
       if (beforePasteState) {
         _this3.beforePasteState = null;
 
@@ -780,6 +795,20 @@ var _initialiseProps = function _initialiseProps() {
 
         return;
       }
+
+      var oldValue = _this3.value;
+
+      var input = _this3.getInputDOMNode(); // autofill replaces whole value, ignore old one
+      // https://github.com/sanniassin/react-input-mask/issues/113
+      //
+      // input.matches throws exception if selector isn't supported
+
+
+      try {
+        if (typeof input.matches === 'function' && input.matches(':-webkit-autofill')) {
+          oldValue = '';
+        }
+      } catch (e) {}
 
       var selection = _this3.getSelection();
 
@@ -805,6 +834,10 @@ var _initialiseProps = function _initialiseProps() {
           var editablePos = deleteFromRight ? _this3.getRightEditablePos(cursorPos) : _this3.getLeftEditablePos(cursorPos - 1);
 
           if (editablePos !== null) {
+            if (!maskChar) {
+              value = value.substr(0, getFilledLength(_this3.maskOptions, value));
+            }
+
             value = clearRange(_this3.maskOptions, value, editablePos, 1);
             cursorPos = editablePos;
           }
@@ -1023,6 +1056,18 @@ var _initialiseProps = function _initialiseProps() {
       }
 
       _this3.setCursorPos(cursorPos);
+    }
+  });
+  Object.defineProperty(this, "handleRef", {
+    configurable: true,
+    enumerable: true,
+    writable: true,
+    value: function value(ref) {
+      _this3.input = ref;
+
+      if (typeof _this3.props.inputRef === 'function') {
+        _this3.props.inputRef(ref);
+      }
     }
   });
 };
