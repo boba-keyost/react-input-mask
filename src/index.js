@@ -299,6 +299,7 @@ class InputElement extends React.Component {
 
     if (this.backspaceOrDeleteRemoval) {
       var deleteFromRight = this.backspaceOrDeleteRemoval.key === 'Delete';
+      var cursorIncrement = 0;
       value = this.value;
       selection = this.backspaceOrDeleteRemoval.selection;
       cursorPos = selection.start;
@@ -307,6 +308,9 @@ class InputElement extends React.Component {
 
       if (selection.length) {
         value = clearRange(this.maskOptions, value, selection.start, selection.length);
+        if (deleteFromRight) {
+          cursorIncrement += selection.length;
+        }
       } else if (selection.start < prefix.length || (!deleteFromRight && selection.start === prefix.length)) {
         cursorPos = prefix.length;
       } else {
@@ -318,10 +322,12 @@ class InputElement extends React.Component {
           if (!maskChar) {
             value = value.substr(0, getFilledLength(this.maskOptions, value));
           }
-          value = clearRange(this.maskOptions, value, editablePos, 1);
-          cursorPos = editablePos;
+          if (deleteFromRight) {
+            cursorIncrement += 1;
+          }
         }
       }
+      cursorPos += cursorIncrement;
     } else if (valueLen > oldValueLen) {
       var enteredStringLen = valueLen - oldValueLen;
       var startPos = selection.end - enteredStringLen;
