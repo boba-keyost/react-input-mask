@@ -78,14 +78,6 @@ function _objectWithoutProperties(source, excluded) {
   return target;
 }
 
-function _assertThisInitialized(self) {
-  if (self === void 0) {
-    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
-  }
-
-  return self;
-}
-
 var defaultCharsRules = {
   '9': '[0-9]',
   'a': '[A-Za-z]',
@@ -93,7 +85,7 @@ var defaultCharsRules = {
 };
 var defaultMaskChar = '_';
 
-function parseMask (mask, maskChar, charsRules) {
+var parseMask = function (mask, maskChar, charsRules) {
   if (maskChar === undefined) {
     maskChar = defaultMaskChar;
   }
@@ -144,7 +136,7 @@ function parseMask (mask, maskChar, charsRules) {
     lastEditablePos: lastEditablePos,
     permanents: permanents
   };
-}
+};
 
 function isAndroidBrowser() {
   var windows = new RegExp('windows', 'i');
@@ -381,13 +373,13 @@ function getInsertStringLength(maskOptions, value, insertStr, insertPos) {
   return insertPos - initialInsertPos;
 }
 
-function defer (fn) {
+var defer = function (fn) {
   var defer = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || function () {
     return setTimeout(fn, 0);
   };
 
   return defer(fn);
-}
+};
 
 // https://github.com/sanniassin/react-input-mask
 var InputElement =
@@ -400,7 +392,7 @@ function (_React$Component) {
 
     _this = _React$Component.call(this, props) || this;
 
-    _initialiseProps.call(_assertThisInitialized(_this));
+    _initialiseProps.call(_this);
 
     var mask = props.mask,
         maskChar = props.maskChar,
@@ -821,6 +813,7 @@ var _initialiseProps = function _initialiseProps() {
 
       if (_this3.backspaceOrDeleteRemoval) {
         var deleteFromRight = _this3.backspaceOrDeleteRemoval.key === 'Delete';
+        var cursorIncrement = 0;
         value = _this3.value;
         selection = _this3.backspaceOrDeleteRemoval.selection;
         cursorPos = selection.start;
@@ -828,6 +821,10 @@ var _initialiseProps = function _initialiseProps() {
 
         if (selection.length) {
           value = clearRange(_this3.maskOptions, value, selection.start, selection.length);
+
+          if (deleteFromRight) {
+            cursorIncrement += selection.length;
+          }
         } else if (selection.start < prefix.length || !deleteFromRight && selection.start === prefix.length) {
           cursorPos = prefix.length;
         } else {
@@ -838,10 +835,13 @@ var _initialiseProps = function _initialiseProps() {
               value = value.substr(0, getFilledLength(_this3.maskOptions, value));
             }
 
-            value = clearRange(_this3.maskOptions, value, editablePos, 1);
-            cursorPos = editablePos;
+            if (deleteFromRight) {
+              cursorIncrement += 1;
+            }
           }
         }
+
+        cursorPos += cursorIncrement;
       } else if (valueLen > oldValueLen) {
         var enteredStringLen = valueLen - oldValueLen;
         var startPos = selection.end - enteredStringLen;

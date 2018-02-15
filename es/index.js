@@ -82,7 +82,7 @@ function (_React$Component) {
     var newValue = this.hasValue ? this.getStringValue(nextProps.value) : this.value;
 
     if (!oldMaskOptions.mask && !this.hasValue) {
-      newValue = this.getInputDOMNode().value;
+      newValue = this.getInputValue();
     }
 
     if (isMaskChanged || this.maskOptions.mask && (newValue || showEmpty)) {
@@ -125,7 +125,8 @@ function (_React$Component) {
         alwaysShowMask = _props.alwaysShowMask,
         maskChar = _props.maskChar,
         formatChars = _props.formatChars,
-        props = _objectWithoutProperties(_props, ["mask", "alwaysShowMask", "maskChar", "formatChars"]);
+        inputRef = _props.inputRef,
+        props = _objectWithoutProperties(_props, ["mask", "alwaysShowMask", "maskChar", "formatChars", "inputRef"]);
 
     if (this.maskOptions.mask) {
       if (!props.disabled && !props.readOnly) {
@@ -141,9 +142,7 @@ function (_React$Component) {
     }
 
     return React.createElement("input", _extends({
-      ref: function ref(_ref) {
-        return _this2.input = _ref;
-      }
+      ref: this.handleRef
     }, props, {
       onFocus: this.onFocus,
       onBlur: this.onBlur
@@ -414,8 +413,6 @@ var _initialiseProps = function _initialiseProps() {
 
       var value = _this3.getInputValue();
 
-      var oldValue = _this3.value;
-
       if (beforePasteState) {
         _this3.beforePasteState = null;
 
@@ -423,6 +420,20 @@ var _initialiseProps = function _initialiseProps() {
 
         return;
       }
+
+      var oldValue = _this3.value;
+
+      var input = _this3.getInputDOMNode(); // autofill replaces whole value, ignore old one
+      // https://github.com/sanniassin/react-input-mask/issues/113
+      //
+      // input.matches throws exception if selector isn't supported
+
+
+      try {
+        if (typeof input.matches === 'function' && input.matches(':-webkit-autofill')) {
+          oldValue = '';
+        }
+      } catch (e) {}
 
       var selection = _this3.getSelection();
 
@@ -435,6 +446,7 @@ var _initialiseProps = function _initialiseProps() {
 
       if (_this3.backspaceOrDeleteRemoval) {
         var deleteFromRight = _this3.backspaceOrDeleteRemoval.key === 'Delete';
+        var cursorIncrement = 0;
         value = _this3.value;
         selection = _this3.backspaceOrDeleteRemoval.selection;
         cursorPos = selection.start;
@@ -442,16 +454,27 @@ var _initialiseProps = function _initialiseProps() {
 
         if (selection.length) {
           value = clearRange(_this3.maskOptions, value, selection.start, selection.length);
+
+          if (deleteFromRight) {
+            cursorIncrement += selection.length;
+          }
         } else if (selection.start < prefix.length || !deleteFromRight && selection.start === prefix.length) {
           cursorPos = prefix.length;
         } else {
           var editablePos = deleteFromRight ? _this3.getRightEditablePos(cursorPos) : _this3.getLeftEditablePos(cursorPos - 1);
 
           if (editablePos !== null) {
-            value = clearRange(_this3.maskOptions, value, editablePos, 1);
-            cursorPos = editablePos;
+            if (!maskChar) {
+              value = value.substr(0, getFilledLength(_this3.maskOptions, value));
+            }
+
+            if (deleteFromRight) {
+              cursorIncrement += 1;
+            }
           }
         }
+
+        cursorPos += cursorIncrement;
       } else if (valueLen > oldValueLen) {
         var enteredStringLen = valueLen - oldValueLen;
         var startPos = selection.end - enteredStringLen;
@@ -666,6 +689,18 @@ var _initialiseProps = function _initialiseProps() {
       }
 
       _this3.setCursorPos(cursorPos);
+    }
+  });
+  Object.defineProperty(this, "handleRef", {
+    configurable: true,
+    enumerable: true,
+    writable: true,
+    value: function value(ref) {
+      _this3.input = ref;
+
+      if (typeof _this3.props.inputRef === 'function') {
+        _this3.props.inputRef(ref);
+      }
     }
   });
 };
