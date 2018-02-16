@@ -835,6 +835,9 @@ var _initialiseProps = function _initialiseProps() {
               value = value.substr(0, getFilledLength(_this3.maskOptions, value));
             }
 
+            value = clearRange(_this3.maskOptions, value, editablePos, 1);
+            cursorPos = editablePos;
+
             if (deleteFromRight) {
               cursorIncrement += 1;
             }
