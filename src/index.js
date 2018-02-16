@@ -322,6 +322,8 @@ class InputElement extends React.Component {
           if (!maskChar) {
             value = value.substr(0, getFilledLength(this.maskOptions, value));
           }
+          value = clearRange(this.maskOptions, value, editablePos, 1);
+          cursorPos = editablePos;
           if (deleteFromRight) {
             cursorIncrement += 1;
           }
