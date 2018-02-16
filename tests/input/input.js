@@ -517,12 +517,12 @@ describe('Input', () => {
       input.setCursorPos(7);
       TestUtils.Simulate.keyDown(inputNode, { key: 'Delete' });
       TestUtils.Simulate.change(inputNode);
-      expect(input.getCursorPos()).to.equal(9);
+      expect(input.getCursorPos()).to.equal(10);
 
       input.setCursorPos(11);
       TestUtils.Simulate.keyDown(inputNode, { key: 'Delete' });
       TestUtils.Simulate.change(inputNode);
-      expect(input.getCursorPos()).to.equal(11);
+      expect(input.getCursorPos()).to.equal(12);
     }));
 
   it('Delete range', createInput(
@@ -583,7 +583,7 @@ describe('Input', () => {
       input.setCursorPos(5);
       TestUtils.Simulate.keyDown(inputNode, { key: 'Delete' });
       TestUtils.Simulate.change(inputNode);
-      expect(input.getCursorPos()).to.equal(5);
+      expect(input.getCursorPos()).to.equal(6);
     }));
 
   it('Delete range with escaped characters without maskChar', createInput(
@@ -612,14 +612,14 @@ describe('Input', () => {
       input.setSelection(4, 2);
       TestUtils.Simulate.keyDown(inputNode, { key: 'Delete' });
       TestUtils.Simulate.change(inputNode);
-      expect(input.getCursorPos()).to.equal(4);
+      expect(input.getCursorPos()).to.equal(6);
 
       inputNode.value = '+49 12 394 5';
       TestUtils.Simulate.change(inputNode);
       input.setSelection(4, 2);
       TestUtils.Simulate.keyDown(inputNode, { key: 'Delete' });
       TestUtils.Simulate.change(inputNode);
-      expect(input.getCursorPos()).to.equal(4);
+      expect(input.getCursorPos()).to.equal(6);
     }));
 
   it('Mask change', createInput(
